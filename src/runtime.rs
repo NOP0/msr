@@ -67,33 +67,33 @@ impl<'a> PureController<(&'a SystemState, &'a Duration), Result<SystemState>> fo
             }
         }
 
-        //TODO: don't clone
-        let ignore = state.inactive_loops.clone();
-        for l in self
-            .loops
-            .iter()
-            .filter(|l| !ignore.iter().any(|x| *x == l.id))
-        {
-            if state.controllers.get(&l.id).is_none() {
-                self.initialize_controller_state(l, &mut state);
-            }
+        for l in 0..self.loops.len() {
+            let this_loop = &self.loops[l];
+            let loop_id = &self.loops[l].id;
 
-            let res = l.next((
-                state
-                    .controllers
-                    .get(&l.id)
-                    .expect("The controller state was not initialized"),
-                &state.io,
-                dt,
-            ));
-            match res {
-                Ok(x) => {
-                    let (new_controller, new_io) = x;
-                    state.io = new_io;
-                    state.controllers.insert(l.id.clone(), new_controller);
+            if !state.inactive_loops.contains(loop_id) {
+
+                if state.controllers.get(loop_id).is_none() {
+                    self.initialize_controller_state(this_loop, &mut state);
                 }
-                Err(err) => {
-                    errors.push(err);
+
+                let res = (*this_loop).next((
+                    state
+                        .controllers
+                        .get(loop_id)
+                        .expect("The controller state was not initialized"),
+                    &state.io,
+                    dt,
+                ));
+                match res {
+                    Ok(x) => {
+                        let (new_controller, new_io) = x;
+                    state.io = new_io;
+                    state.controllers.insert((*loop_id).clone(), new_controller);
+                    }
+                    Err(err) => {
+                        errors.push(err);
+                    }
                 }
             }
         }
